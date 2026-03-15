@@ -28,36 +28,23 @@
         /* ЦИФЕРБЛАТ — Финальные правки: Крупнее и Левее */
         #clock-display {
             position: absolute;
-            /* Смещение по вертикали */
             bottom: 31.3%; 
-            /* Центрирование и небольшой сдвиг влево для компенсации перспективы */
             left: 49.5%; 
             transform: translateX(-50%) skewX(-2deg);
-            
-            /* Расширяем область до границ экранчика */
             width: 60%;    
             height: 9%;    
-            
             display: flex;
             justify-content: center;
             align-items: center;
-            
             font-family: 'Arial Narrow', 'Impact', sans-serif; 
             color: #ff0000;
             font-weight: 900;
-            
-            /* УВЕЛИЧЕННЫЙ ШРИФТ для заполнения табло */
             font-size: 13.5vw; 
-            
             text-transform: uppercase;
-            /* Мощное свечение */
             text-shadow: 0 0 15px rgba(255, 0, 0, 1), 0 0 35px rgba(255, 0, 0, 0.8);
-            
-            /* Сжимаем символы, чтобы они не вылезали за края */
             letter-spacing: -3px;
             white-space: nowrap;
             opacity: 0.95;
-            
             animation: pulse 0.1s infinite alternate;
         }
 
@@ -90,16 +77,18 @@
             line-height: 1.1;
         }
 
-        /* Стили шрифтов */
         .font-style-0 { font-family: 'Courier New', monospace; color: #ff0000; }
         .font-style-1 { font-family: 'Times New Roman', serif; font-style: italic; }
         .font-style-2 { font-family: 'Arial Black', sans-serif; letter-spacing: -2px; }
         .font-style-3 { font-family: 'Impact', sans-serif; }
         .font-style-4 { font-family: 'Verdana', sans-serif; text-shadow: 0 0 10px red; }
-
     </style>
 </head>
 <body>
+
+    <audio id="bgMusic" loop>
+        <source src="fon.mp3" type="audio/mpeg">
+    </audio>
 
     <div id="scene">
         <div id="clock-display">88:88</div>
@@ -114,7 +103,15 @@
         const scene = document.getElementById('scene');
         const overlay = document.getElementById('overlay');
         const messageDisplay = document.getElementById('message');
+        const audio = document.getElementById('bgMusic');
         
+        // Функция включения музыки при первом клике
+        function initAudio() {
+            audio.play().catch(e => console.log("Нужен клик для запуска звука"));
+            document.removeEventListener('click', initAudio);
+        }
+        document.addEventListener('click', initAudio);
+
         const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const phrases = [
             "RUN",
@@ -139,11 +136,9 @@
             const randomStyle = "font-style-" + Math.floor(Math.random() * 5);
 
             messageDisplay.innerText = randomPhrase;
-            
-            // Масштабирование шрифта для длинного кода
             messageDisplay.style.fontSize = (randomPhrase.length > 50) ? "1rem" : "2rem";
-
             messageDisplay.className = "scary-text " + randomStyle;
+            
             scene.style.display = "none";
             overlay.style.display = "flex";
 
