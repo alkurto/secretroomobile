@@ -8,20 +8,24 @@
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             overflow: hidden; background-color: black;
+            font-family: 'Courier New', monospace;
         }
 
         #scene {
             width: 100%; height: 100%;
             background-image: url('background.png'); 
             background-size: cover; background-position: center;
-            background-repeat: no-repeat; position: relative; display: block;
-            /* ПРАВКА: Сверхмедленное приближение */
-            transition: transform 60s linear; 
-            transform-origin: center 68%; /* Центрируем зум по часам для мобилок */
+            background-repeat: no-repeat; position: absolute; top: 0; left: 0;
+            transition: transform 60s linear, filter 0.5s ease; 
+            transform-origin: center 68%;
+            z-index: 1;
         }
 
-        .zoom-active {
-            transform: scale(4.5);
+        /* Быстрый зум при нажатии на часы для мобилок */
+        .fast-zoom-mobile {
+            transition: transform 2s ease-in-out !important;
+            transform: scale(6) translateY(5%) !important;
+            filter: brightness(0.2);
         }
 
         #clock-display {
@@ -35,64 +39,91 @@
             text-transform: uppercase;
             text-shadow: 0 0 15px rgba(255, 0, 0, 1);
             letter-spacing: -3px; white-space: nowrap; opacity: 0.95;
-            text-align: center;
+            z-index: 10;
         }
 
-        /* ПРАВКА: Минимальное расстояние между строками для мобильной версии */
+        /* Стиль кода на часах для мобилок */
         .final-code {
-            font-size: 7vw !important; /* Уменьшаем размер, чтобы влезло в 2 строки */
+            font-size: 7vw !important;
             line-height: 0.65 !important;
             letter-spacing: 0px !important;
-            white-space: normal !important; /* Разрешаем перенос */
+            white-space: normal !important;
         }
 
         .active-clock { animation: pulse 0.1s infinite alternate; }
-
         @keyframes pulse {
             from { opacity: 0.85; text-shadow: 0 0 15px rgba(255, 0, 0, 1); }
             to { opacity: 1; text-shadow: 0 0 25px rgba(255, 0, 0, 1), 0 0 8px white; }
+        }
+
+        /* Комната допроса dps.png */
+        #interrogation-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('dps.png'); 
+            background-size: cover; background-position: center;
+            display: none; 
+            flex-direction: column; justify-content: flex-end;
+            align-items: center;
+            z-index: 9999; 
+            padding-bottom: 80px; /* Выше для удобства пальцев */
+        }
+
+        #interrogator-text {
+            font-size: 5.5vw; color: white; text-align: center;
+            margin-bottom: 40px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px; border-radius: 8px;
+            max-width: 85%; line-height: 1.2;
+        }
+
+        #decision-buttons { display: flex; gap: 30px; width: 90%; justify-content: center; }
+
+        .scary-btn {
+            flex: 1; padding: 20px 0; background: rgba(0,0,0,0.8);
+            font-family: 'Courier New', monospace; font-size: 1.4rem;
+            text-transform: uppercase; border: 2px solid white;
+            color: white;
+        }
+
+        #btn-no { color: #ff4444; border-color: #ff4444; }
+        #btn-yes { color: #44ff44; border-color: #44ff44; }
+
+        #death-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; display: none; justify-content: center;
+            align-items: center; z-index: 10005; text-align: center;
         }
 
         #noise-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10000; display: none; pointer-events: none;
             background: url('https://media.giphy.com/media/oEI9uWU0EB9LpL6SAs/giphy.gif');
-            opacity: 0.4;
+            opacity: 0.3;
         }
 
         #boot-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px);
-            display: flex; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center;
             z-index: 1001;
         }
 
         #start-btn {
             padding: 15px 30px; background: transparent; color: #ff0000;
             border: 2px solid #ff0000; font-family: 'Impact', sans-serif;
-            font-size: 1.2rem; cursor: pointer; text-transform: uppercase;
-            letter-spacing: 2px;
+            font-size: 1.2rem; text-transform: uppercase;
         }
 
-        #overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: black; display: none; 
-            justify-content: center; align-items: center;
-            z-index: 9999; text-align: center;
-        }
-
-        .scary-text {
-            color: white; text-transform: uppercase; font-size: 1.8rem; 
-            padding: 20px; word-wrap: break-word; max-width: 85%; line-height: 1.1;
-            font-family: 'Courier New', monospace;
+        .final-link {
+            color: #44ff44; text-decoration: underline; font-size: 4vw;
+            background: rgba(0,0,0,0.8); padding: 10px; margin-top: 15px;
+            word-break: break-all; text-align: center; width: 80%;
         }
     </style>
 </head>
 <body>
 
-    <audio id="bgMusic" loop>
-        <source src="fone.mp3" type="audio/mpeg">
-    </audio>
+    <audio id="bgMusic" loop><source src="fone.mp3" type="audio/mpeg"></audio>
+    <audio id="interrogationMusic" loop><source src="dp.mp3" type="audio/mpeg"></audio>
 
     <div id="noise-overlay"></div>
 
@@ -106,81 +137,128 @@
         </div>
     </div>
 
-    <div id="overlay">
-        <div id="message" class="scary-text"></div>
+    <div id="death-overlay">
+        <div style="color:white; font-size: 7vw; letter-spacing: 5px; padding: 20px;">6-9-14-1-12<br>12-9-22-5</div>
+    </div>
+
+    <div id="interrogation-overlay">
+        <div id="interrogator-text"></div>
+        <div id="decision-buttons">
+            <button id="btn-no" class="scary-btn">НЕТ</button>
+            <button id="btn-yes" class="scary-btn">ДА</button>
+        </div>
+        <div id="final-message-container"></div>
     </div>
 
     <script>
-        const clockSpans = [
-            document.getElementById('c1'), document.getElementById('c2'),
-            document.getElementById('c3'), document.getElementById('c4')
-        ];
-        const clockText = document.getElementById('clock-text');
-        const scene = document.getElementById('scene');
-        const overlay = document.getElementById('overlay');
-        const messageDisplay = document.getElementById('message');
-        const audio = document.getElementById('bgMusic');
-        const bootOverlay = document.getElementById('boot-overlay');
-        const noise = document.getElementById('noise-overlay');
+        const clockSpans = [document.getElementById('c1'), document.getElementById('c2'), document.getElementById('c3'), document.getElementById('c4')];
         const clockContainer = document.getElementById('clock-display');
+        const clockTextWrapper = document.getElementById('clock-text');
+        const audioFone = document.getElementById('bgMusic');
+        const audioDp = document.getElementById('interrogationMusic');
+        const noise = document.getElementById('noise-overlay');
+        const scene = document.getElementById('scene');
+        const deathOverlay = document.getElementById('death-overlay');
+        const interrogationOverlay = document.getElementById('interrogation-overlay');
+        const interrogatorText = document.getElementById('interrogator-text');
         
-        let activeIndices = []; 
-        let isCodeTime = false;
+        let activeIndices = [];
+        let interrogationStep = 0;
+        let isCodeOnClock = false;
+        let timerCode, timerDeath, timerReload;
 
-        const codeDigitsHtml = "6-9-14-1-12<br>12-9-22-5";
-        const codeDigitsPlain = "6-9-14-1-12 12-9-22-5";
-
-        document.getElementById('start-btn').addEventListener('click', () => {
+        function flash() {
             noise.style.display = 'block';
+            setTimeout(() => noise.style.display = 'none', 100);
+        }
+
+        document.getElementById('start-btn').onclick = () => {
+            document.getElementById('boot-overlay').style.display = 'none';
+            audioFone.play();
             
-            setTimeout(() => {
-                noise.style.display = 'none';
-                bootOverlay.style.display = 'none';
-                audio.play();
+            // Запуск медленного зума
+            scene.style.transform = 'scale(4.5)';
 
-                // Включаем зум
-                scene.classList.add('zoom-active');
-                
-                const order = [0, 2, 1, 3];
-                order.forEach((pos, i) => {
-                    setTimeout(() => {
-                        activeIndices.push(pos);
-                        if (activeIndices.length === 4) {
-                            clockContainer.classList.add('active-clock');
-                        }
-                    }, i * 500); 
-                });
-
-                // 15 секунда: Код на циферблате
+            // Активация цифр
+            [0, 2, 1, 3].forEach((pos, i) => {
                 setTimeout(() => {
-                    isCodeTime = true;
-                    clockText.classList.add('final-code');
-                    clockText.innerHTML = codeDigitsHtml;
-                }, 15000);
+                    activeIndices.push(pos);
+                    if (activeIndices.length === 4) clockContainer.classList.add('active-clock');
+                }, i * 500);
+            });
 
-                // 17 секунда: Чёрный экран
-                setTimeout(() => {
-                    messageDisplay.innerText = codeDigitsPlain;
-                    overlay.style.display = "flex";
+            // 15 сек - Код на часах
+            timerCode = setTimeout(() => {
+                isCodeOnClock = true;
+                clockTextWrapper.classList.add('final-code');
+                clockTextWrapper.innerHTML = "6-9-14-1-12<br>12-9-22-5";
+            }, 15000);
 
-                    // Перезагрузка через 3 секунды после чёрного экрана
-                    setTimeout(() => {
-                        location.reload();
-                    }, 3000);
-                }, 17000);
+            // 17 сек - Смерть
+            timerDeath = setTimeout(() => {
+                deathOverlay.style.display = 'flex';
+                timerReload = setTimeout(() => location.reload(), 3000);
+            }, 17000);
+        };
 
-            }, 600); 
-        });
-
-        const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        // Глитч
         setInterval(() => {
-            if (isCodeTime) return;
+            if (isCodeOnClock) return;
+            const chars = "0123456789";
             activeIndices.forEach(idx => {
                 clockSpans[idx].innerText = chars.charAt(Math.floor(Math.random() * chars.length));
             });
         }, 120);
 
-        // Всплывающие фразы удалены
+        // Клик по часам (Допрос)
+        clockContainer.onclick = () => {
+            if (activeIndices.length < 4) return;
+
+            // Отмена перезагрузки
+            clearTimeout(timerCode);
+            clearTimeout(timerDeath);
+            clearTimeout(timerReload);
+
+            scene.classList.add('fast-zoom-mobile');
+            flash();
+
+            setTimeout(() => {
+                audioFone.pause();
+                audioDp.play();
+                scene.style.display = 'none';
+                interrogationOverlay.style.display = 'flex';
+                showStep();
+            }, 2000);
+        };
+
+        const questions = ["Ты много знаешь?", "Ты кому-то рассказывал про это?", "Ты расскажешь нам?"];
+
+        function showStep() {
+            flash();
+            if (interrogationStep < questions.length) {
+                interrogatorText.innerText = questions[interrogationStep];
+            } else {
+                finish();
+            }
+        }
+
+        document.getElementById('btn-no').onclick = () => {
+            if (interrogationStep === 0) location.reload();
+            else { interrogationStep++; showStep(); }
+        };
+
+        document.getElementById('btn-yes').onclick = () => {
+            if (interrogationStep === 0) { interrogationStep++; showStep(); }
+            else location.reload();
+        };
+
+        function finish() {
+            document.getElementById('decision-buttons').style.display = 'none';
+            interrogatorText.innerText = "Ты молодец:";
+            const link = "https://magictool.ai/tool/encrypt-text/ru/";
+            document.getElementById('final-message-container').innerHTML = `<a href="${link}" target="_blank" class="final-link">${link}</a>`;
+            setTimeout(() => location.reload(), 10000);
+        }
     </script>
 </body>
 </html>
