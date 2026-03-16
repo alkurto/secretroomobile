@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Academy: Zero Delay</title>
+    <title>The Academy: Zero Delay (Mobile)</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -15,9 +15,15 @@
             background-image: url('background.png'); 
             background-size: cover; background-position: center;
             background-repeat: no-repeat; position: relative; display: block;
+            /* ПРАВКА: Сверхмедленное приближение */
+            transition: transform 60s linear; 
+            transform-origin: center 68%; /* Центрируем зум по часам для мобилок */
         }
 
-        /* ЦИФЕРБЛАТ — адаптирован под мобильную верстку */
+        .zoom-active {
+            transform: scale(4.5);
+        }
+
         #clock-display {
             position: absolute;
             bottom: 31.3%; left: 49.5%; 
@@ -29,6 +35,15 @@
             text-transform: uppercase;
             text-shadow: 0 0 15px rgba(255, 0, 0, 1);
             letter-spacing: -3px; white-space: nowrap; opacity: 0.95;
+            text-align: center;
+        }
+
+        /* ПРАВКА: Минимальное расстояние между строками для мобильной версии */
+        .final-code {
+            font-size: 7vw !important; /* Уменьшаем размер, чтобы влезло в 2 строки */
+            line-height: 0.65 !important;
+            letter-spacing: 0px !important;
+            white-space: normal !important; /* Разрешаем перенос */
         }
 
         .active-clock { animation: pulse 0.1s infinite alternate; }
@@ -38,7 +53,6 @@
             to { opacity: 1; text-shadow: 0 0 25px rgba(255, 0, 0, 1), 0 0 8px white; }
         }
 
-        /* БЕЛЫЙ ШУМ */
         #noise-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10000; display: none; pointer-events: none;
@@ -46,7 +60,6 @@
             opacity: 0.4;
         }
 
-        /* СТАРТОВЫЙ ЭКРАН */
         #boot-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px);
@@ -61,30 +74,24 @@
             letter-spacing: 2px;
         }
 
-        /* ЭКРАН СКРИМЕРОВ */
         #overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: black; display: none; 
             justify-content: center; align-items: center;
-            z-index: 999; text-align: center;
+            z-index: 9999; text-align: center;
         }
 
         .scary-text {
-            color: white; text-transform: uppercase; font-size: 2rem; 
+            color: white; text-transform: uppercase; font-size: 1.8rem; 
             padding: 20px; word-wrap: break-word; max-width: 85%; line-height: 1.1;
+            font-family: 'Courier New', monospace;
         }
-
-        .font-style-0 { font-family: 'Courier New', monospace; color: #ff0000; }
-        .font-style-1 { font-family: 'Times New Roman', serif; font-style: italic; }
-        .font-style-2 { font-family: 'Arial Black', sans-serif; letter-spacing: -2px; }
-        .font-style-3 { font-family: 'Impact', sans-serif; }
-        .font-style-4 { font-family: 'Verdana', sans-serif; text-shadow: 0 0 10px red; }
     </style>
 </head>
 <body>
 
     <audio id="bgMusic" loop>
-        <source src="fon.mp3" type="audio/mpeg">
+        <source src="fone.mp3" type="audio/mpeg">
     </audio>
 
     <div id="noise-overlay"></div>
@@ -95,7 +102,7 @@
 
     <div id="scene">
         <div id="clock-display">
-            <span id="c1">-</span><span id="c2">-</span>:<span id="c3">-</span><span id="c4">-</span>
+            <div id="clock-text"><span id="c1">-</span><span id="c2">-</span>:<span id="c3">-</span><span id="c4">-</span></div>
         </div>
     </div>
 
@@ -105,11 +112,10 @@
 
     <script>
         const clockSpans = [
-            document.getElementById('c1'),
-            document.getElementById('c2'),
-            document.getElementById('c3'),
-            document.getElementById('c4')
+            document.getElementById('c1'), document.getElementById('c2'),
+            document.getElementById('c3'), document.getElementById('c4')
         ];
+        const clockText = document.getElementById('clock-text');
         const scene = document.getElementById('scene');
         const overlay = document.getElementById('overlay');
         const messageDisplay = document.getElementById('message');
@@ -118,18 +124,11 @@
         const noise = document.getElementById('noise-overlay');
         const clockContainer = document.getElementById('clock-display');
         
-        let isSystemActive = false;
         let activeIndices = []; 
+        let isCodeTime = false;
 
-        const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        const phrases = [
-            "RUN",
-            "you shouldn't be here",
-            "it's not what you think",
-            "THE ACADEMY IS DANGEROUS",
-            "I'm sorry",
-            "nz1Tay2nf13fpTGYTpzVfnQ+QGZIDdlMFZ/f9eF5mD9dj8PiAYC4UReMqSkQU9qHupRxUCfnlC5B16pnuGjifg=="
-        ];
+        const codeDigitsHtml = "6-9-14-1-12<br>12-9-22-5";
+        const codeDigitsPlain = "6-9-14-1-12 12-9-22-5";
 
         document.getElementById('start-btn').addEventListener('click', () => {
             noise.style.display = 'block';
@@ -138,50 +137,50 @@
                 noise.style.display = 'none';
                 bootOverlay.style.display = 'none';
                 audio.play();
+
+                // Включаем зум
+                scene.classList.add('zoom-active');
                 
-                // Порядок включения цифр: 1, 3, 2, 4 (индексы: 0, 2, 1, 3)
                 const order = [0, 2, 1, 3];
                 order.forEach((pos, i) => {
                     setTimeout(() => {
                         activeIndices.push(pos);
                         if (activeIndices.length === 4) {
-                            isSystemActive = true;
                             clockContainer.classList.add('active-clock');
-                            setTimeout(showScaryEvent, 5000); // Первый скример через 5 сек
                         }
                     }, i * 500); 
                 });
+
+                // 15 секунда: Код на циферблате
+                setTimeout(() => {
+                    isCodeTime = true;
+                    clockText.classList.add('final-code');
+                    clockText.innerHTML = codeDigitsHtml;
+                }, 15000);
+
+                // 17 секунда: Чёрный экран
+                setTimeout(() => {
+                    messageDisplay.innerText = codeDigitsPlain;
+                    overlay.style.display = "flex";
+
+                    // Перезагрузка через 3 секунды после чёрного экрана
+                    setTimeout(() => {
+                        location.reload();
+                    }, 3000);
+                }, 17000);
+
             }, 600); 
         });
 
-        // Бегущие символы
+        const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         setInterval(() => {
+            if (isCodeTime) return;
             activeIndices.forEach(idx => {
                 clockSpans[idx].innerText = chars.charAt(Math.floor(Math.random() * chars.length));
             });
         }, 120);
 
-        function showScaryEvent() {
-            if (!isSystemActive) return;
-
-            const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-            const randomStyle = "font-style-" + Math.floor(Math.random() * 5);
-
-            messageDisplay.innerText = randomPhrase;
-            messageDisplay.className = "scary-text " + randomStyle;
-            
-            messageDisplay.style.fontSize = (randomPhrase.length > 50) ? "1rem" : "2rem";
-
-            scene.style.display = "none";
-            overlay.style.display = "flex";
-
-            setTimeout(() => {
-                overlay.style.display = "none";
-                scene.style.display = "block";
-            }, 5000);
-        }
-
-        setInterval(showScaryEvent, 60000);
+        // Всплывающие фразы удалены
     </script>
 </body>
 </html>
